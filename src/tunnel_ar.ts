@@ -183,12 +183,12 @@ class App {
             // XR
             // const xrHelper = await scene.createDefaultXRExperienceAsync();
 
-            // let xr = await scene.createDefaultXRExperienceAsync({
-            //     // ask for an ar-session
-            //     uiOptions: {
-            //     sessionMode: "immersive-ar",
-            //     },
-            // });
+            let xr = await scene.createDefaultXRExperienceAsync({
+                // ask for an ar-session
+                uiOptions: {
+                sessionMode: "immersive-ar",
+                },
+            });
             // console.log("after")
 
             // var scene: Scene = new Scene(engine);
