@@ -5,7 +5,7 @@
     "main": "tunnel_ar.js",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
-        "build": "webpack --mode development && move ./dist ./docs",
+        "build": "webpack --mode development && xcopy /E /Y dist docs",
         "start": "webpack-dev-server --mode development"
     },
     "keywords": [],
