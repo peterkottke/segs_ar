@@ -2,10 +2,10 @@
     "name": "tunnel_ar",
     "version": "1.0.0",
     "description": "",
-    "main": "index.js",
+    "main": "tunnel_ar.js",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
-        "build": "webpack",
+        "build": "webpack --mode development",
         "start": "webpack-dev-server --mode development"
     },
     "keywords": [],
