@@ -6,8 +6,8 @@ const appDirectory = fs.realpathSync(process.cwd());
 module.exports = {
     entry: path.resolve(appDirectory, "src/tunnel_ar.ts"), //path to the main .ts file
     output: {
-        filename: "js/[name].js", //name for the javascript file that is created/compiled in memory
-        sourceMapFilename: 'js/[name].js.map',
+        filename: "js/[file].js", //name for the javascript file that is created/compiled in memory
+        sourceMapFilename: 'js/[file].js.map',
         clean: true
     },
     resolve: {

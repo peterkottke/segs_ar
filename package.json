@@ -19,7 +19,7 @@
     },
     "dependencies": {
         "babylonjs": "^5.0.1",
-        "babylonjs-gui": "^5.0.1",
+        "babylonjs-gui": "^5.0.3",
         "babylonjs-loaders": "^5.0.2",
         "html-webpack-plugin": "^5.5.0",
         "webpack-dev-server": "^4.7.4"

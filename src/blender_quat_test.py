@@ -17,8 +17,8 @@ for key, rotations in obj_rots.items():
     for obj in bpy.data.objects:
         if f"{key}_RH" in obj.name:
             for i, rotation in enumerate(rotations):
-                if i > 100:
-                    break
+#                if i > 100:
+#                    break
                 
                 new_obj = obj.copy()
                 new_obj.name = f"{key}_dupe_{i}"
