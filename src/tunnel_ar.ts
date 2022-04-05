@@ -204,19 +204,19 @@ class App {
                     optionalFeatures: ["hit-test", "anchors"],
                 });
     
-                // const fm = xr.baseExperience.featuresManager;
-                // const xrPlanes = fm.enableFeature(WebXRPlaneDetector.Name, "latest");
-                // const anchorSystem = fm.enableFeature(WebXRAnchorSystem, 'latest') as WebXRAnchorSystem;
-                // const hitTest = fm.enableFeature(WebXRHitTest, 'latest') as WebXRHitTest;
+                const fm = xr.baseExperience.featuresManager;
+                const xrPlanes = fm.enableFeature(WebXRPlaneDetector.Name, "latest");
+                const anchorSystem = fm.enableFeature(WebXRAnchorSystem, 'latest') as WebXRAnchorSystem;
+                const hitTest = fm.enableFeature(WebXRHitTest, 'latest') as WebXRHitTest;
 
-                // // var sphereTN = new TransformNode("tn", scene);
-                // var sphere: Mesh = MeshBuilder.CreateSphere("sphere", { diameter: 1 }, scene);
-                // sphere.position = new Vector3(0,0,0-5);
+                // var sphereTN = new TransformNode("tn", scene);
+                var sphere: Mesh = MeshBuilder.CreateSphere("sphere", { diameter: 1 }, scene);
+                sphere.position = new Vector3(0,0,0);
 
-                // anchorSystem.onAnchorAddedObservable.add((anchor) => {
-                //     //...
-                //     anchor.attachedNode = sphere;
-                //   });
+                anchorSystem.onAnchorAddedObservable.add((anchor) => {
+                    //...
+                    anchor.attachedNode = sphere;
+                  });
         
                 // let lastHitTest: BABYLON.Nullable<BABYLON.IWebXRHitResult> = null;
                 // // const anchorPromise = anchorSystem.addAnchorPointUsingHitTestResultAsync(lastHitTest);
