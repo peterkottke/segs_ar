@@ -1,5 +1,4 @@
 import { Engine, Scene, ArcRotateCamera, StandardMaterial, AxesViewer, Color3, FreeCamera, Matrix, SceneLoader, HemisphericLight, Vector3, MeshBuilder, Mesh, ThinRenderTargetTexture, HandConstraintZone, Quaternion } from "babylonjs";
-// import sse_segs from "./static/sse_segs.obj";
 import 'babylonjs-loaders'
 
 var canvas: any = document.getElementById("renderCanvas");
