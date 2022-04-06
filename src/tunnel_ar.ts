@@ -1,4 +1,4 @@
-import { Engine, KeyboardEventTypes, Scene, WebXRSessionManager, WebXRPlaneDetector, WebXRHitTest, WebXRAnchorSystem, ArcRotateCamera, StandardMaterial, AxesViewer, Color3, FreeCamera, Matrix, SceneLoader, HemisphericLight, Vector3, MeshBuilder, Mesh, ThinRenderTargetTexture, HandConstraintZone, Quaternion, Texture, TransformNode } from "babylonjs";
+import { Engine, KeyboardEventTypes, Axis, Scene, WebXRSessionManager, WebXRPlaneDetector, WebXRHitTest, WebXRAnchorSystem, ArcRotateCamera, StandardMaterial, AxesViewer, Color3, FreeCamera, Matrix, SceneLoader, HemisphericLight, Vector3, MeshBuilder, Mesh, ThinRenderTargetTexture, HandConstraintZone, Quaternion, Texture, TransformNode } from "babylonjs";
 import 'babylonjs-loaders';
 import * as GUI from "babylonjs-gui";
 // import {GUI} from 'babylonjs-gui';
@@ -62,9 +62,90 @@ class App {
         light2.intensity = 0.5;
 
 
+        var sphereOrigin: Mesh = MeshBuilder.CreateSphere("sphere", { diameter: 1 }, scene);
+        var segmentOffset = new Vector3(2.598,-5.32,-9.15)
+        // sphereOrigin.position;
+        sphereOrigin.position = new Vector3(0,0,0);
+        var sphereMaterial = new StandardMaterial("myMaterial", scene);
+        sphereMaterial.diffuseColor = new Color3(0.5,0,0);
+        sphereOrigin.material = sphereMaterial;
+
+        
+        var sphere: Mesh = MeshBuilder.CreateSphere("sphere", { diameter: 1 }, scene);
+        sphere.position = new Vector3(0,0,2.5);
+        // sphere.position = new Vector3(0,0,0);
+        var sphereMaterial = new StandardMaterial("myMaterial", scene);
+        sphereMaterial.diffuseColor = new Color3(0,0.5,0.5);
+        sphere.material = sphereMaterial;
+        sphere.parent = sphereOrigin;
+
+        var sphere: Mesh = MeshBuilder.CreateSphere("sphere", { diameter: 1 }, scene);
+        sphere.position = new Vector3(2.5,0,0);
+        // sphere.position = new Vector3(0,0,0);
+        var sphereMaterial = new StandardMaterial("myMaterial", scene);
+        sphereMaterial.diffuseColor = new Color3(0,0.5,0);
+        sphere.material = sphereMaterial;
+        sphere.parent = sphereOrigin;
+
+        // var CoT = new TransformNode("root", scene);
+        // sphereOrigin.parent = CoT;
+
+        var segmentAlpha = 1;
+
+
+        var available = await WebXRSessionManager.IsSessionSupportedAsync('immersive-ar');
+        // available = false;
+        if (available) {
+            let xr = await scene.createDefaultXRExperienceAsync({
+                // ask for an ar-session
+                uiOptions: {
+                sessionMode: "immersive-ar",
+                referenceSpaceType: "local-floor"
+                },
+                optionalFeatures: ["hit-test", "anchors"],
+            });
+            // sphere.rotate(Axis.Y, 3.1415);
+            segmentAlpha = 0.5;
+
+            const fm = xr.baseExperience.featuresManager;
+            const xrPlanes = fm.enableFeature(WebXRPlaneDetector.Name, "latest");
+            const anchorSystem = fm.enableFeature(WebXRAnchorSystem, 'latest',
+                // {
+                //     worldParentNode: CoT
+                // }
+            ) as WebXRAnchorSystem;
+            const hitTest = fm.enableFeature(WebXRHitTest, 'latest') as WebXRHitTest;
+            var lastHitTest: any;
+
+            anchorSystem.onAnchorAddedObservable.add((anchor) => {
+                anchor.attachedNode = sphereOrigin;
+                anchor.attachedNode.rotation = new Vector3(0,180,0);
+                // anchor.attachedNode = CoT;
+              });
+            // anchorSystem.worldParentNode()
+    
+            
+            hitTest.onHitTestResultObservable.add((results) => {
+                if (results.length) {
+                    lastHitTest = results[0];
+                } else {
+                    lastHitTest = null;
+                }
+            });
+    
+            scene.onPointerObservable.add(async (eventData) => {
+                if (lastHitTest) {
+                    if (lastHitTest.xrHitResult.createAnchor) {
+                        const anchor = await anchorSystem.addAnchorPointUsingHitTestResultAsync(lastHitTest);
+                    }
+                }
+            }, BABYLON.PointerEventTypes.POINTERDOWN);
+    
+        }
+
         // https://www.dropbox.com/s/je705shue9fxuqt/unit_cube.obj?dl=0
         var loadSegs = false;
-        // var loadSegs = true;
+        var loadSegs = true;
 
         if (loadSegs) {
 
@@ -109,25 +190,25 @@ class App {
 
                     let c = Math.random() / 2 + 0.25
                     myMaterial.diffuseColor = new Color3(c, c, c);
-                    // myMaterial.specularColor = new BABYLON.Color3(0.5, 0.6, 0.87);
-                    // myMaterial.emissiveColor = new BABYLON.Color3(1, 1, 1);
-                    // myMaterial.ambientColor = new BABYLON.Color3(0.23, 0.98, 0.53);
-
-                    // myMaterial.alpha = 0.5;
 
                     seg_mesh.material = myMaterial;
+                    seg_mesh.isVisible = false;
+                    myMaterial.alpha = segmentAlpha;
+                    seg_mesh.parent = sphereOrigin;
                         
                     console.log(seg_name + ": " + seg_rotations[seg_name].length);
-                    // for (let j=0; j<seg_rotations[seg_name].length; j++) {
-                    // for (let j=0; j<seg_rotations[seg_name].length; j++) {
-                    for (let j=0; j<10; j++) {
+
+                    let segLimit = seg_rotations[seg_name].length
+                    if (available) {
+                        segLimit = 100;
+                    }
+
+                    for (let j=1; j<segLimit; j++) {
                         console.log("creating instances")
 
                         let meshInstance = seg_mesh.createInstance("i" + j);
 
-                        meshInstance.position.x = seg_rotations[seg_name][j]['dx'];
-                        meshInstance.position.y = seg_rotations[seg_name][j]['dz'];
-                        meshInstance.position.z = seg_rotations[seg_name][j]['dy'];
+                        meshInstance.position = new Vector3(seg_rotations[seg_name][j]['dx'], seg_rotations[seg_name][j]['dz'], seg_rotations[seg_name][j]['dy']).subtract(segmentOffset)
 
                         
                         let newQuat = new Quaternion(
@@ -138,157 +219,13 @@ class App {
                             );
 
                         meshInstance.rotationQuaternion = newQuat;
-
-                        // meshInstance.rotation()
-
-                        // meshInstance.rotate(BABYLON.Axis.Z, seg_rotations[seg_name][j]['ea'], BABYLON.Space.WORLD);
-                        // meshInstance.rotate(BABYLON.Axis.Y, -seg_rotations[seg_name][j]['eb'], BABYLON.Space.WORLD);
-                        // meshInstance.rotate(BABYLON.Axis.Z, seg_rotations[seg_name][j]['eg'], BABYLON.Space.WORLD);
-
+                        meshInstance.parent = sphereOrigin;
                     }
                 });
 
             }
         }
 
-
-    //     let myPath = [
-    //         // new Vector3(-5.91, 5.72, 3.73),
-    //         // new Vector3(-5.67, 5.84, 4.00),
-    //         // new Vector3(-5.55, 5.74, 4.31),
-    //         // new Vector3(-5.29, 5.85, 4.61),
-    //         new Vector3(-1,0,25),
-    //         new Vector3(0,0,25),
-    //         new Vector3(0,0,0),
-    //         new Vector3(25,0,0),
-    //     ];
-
-    //     const options = {
-    //     path: myPath, //vec3 array,
-    //     updatable: true,
-    //     radius: 0.05,
-    // }
-
-    //     let tube = MeshBuilder.CreateTube("tube", options, scene);  //scene is optional and defaults to the current scene
-
-    //     var myMaterial = new StandardMaterial("myMaterial", scene);
-
-
-    //     myMaterial.diffuseColor = new Color3(1,0,0);
-    //     myMaterial.alpha = 0.5;
-
-    //     tube.material = myMaterial;
-        
-        //  BABYLON.SceneLoader.ImportMesh(
-        //     "",
-        //     // "https://dl.dropbox.com/s/0mqelj0ld0lsynt/",
-        //     //"sse_segs.obj",
-        //     "https://dl.dropbox.com/s/je705shue9fxuqt/",
-        //     "unit_cube.obj",
-        //     scene,
-        //     function (meshes) {          
-        //         for (let i =0; i<meshes.length; i++) {
-        //             // meshes[i].material = (0,255,0);
-                    
-        //             // console.log(meshes[i].scaling);
-        //             // console.log(meshes[i].getBoundingInfo());
-
-        //             scale = 1;
-        //             meshes[i].scaling.x = scale;
-        //             meshes[i].scaling.y = scale;
-        //             meshes[i].scaling.z = scale;
-
-        //             var myMaterial = new BABYLON.StandardMaterial("myMaterial", scene);
-
-
-        //             myMaterial.diffuseColor = new BABYLON.Color3(Math.random(), Math.random(), Math.random());
-        //             // myMaterial.specularColor = new BABYLON.Color3(0.5, 0.6, 0.87);
-        //             // myMaterial.emissiveColor = new BABYLON.Color3(1, 1, 1);
-        //             // myMaterial.ambientColor = new BABYLON.Color3(0.23, 0.98, 0.53);
-
-        //             myMaterial.alpha = 0.5;
-
-        //             meshes[i].material = myMaterial;
-
-        //         }
-        //     }
-        // );
-
-        //BABYLON.SceneLoader.ImportMesh("", "https://dl.dropbox.com/s/rANdoMGeneR4tedLink/", "my-file.glb", scene);
-
-        // Our built-in 'sphere' shape.
-        // var sphere = BABYLON.MeshBuilder.CreateSphere("sphere", {diameter: 15, segments: 32}, scene);
-
-        // Move the sphere upward 1/2 its height
-        // sphere.position.y = 1;W
-
-        // scene.createDefaultEnvironment();
-
-        // XR
-        // const xrHelper = await scene.createDefaultXRExperienceAsync();
-        // let available = true;
-        var available = await WebXRSessionManager.IsSessionSupportedAsync('immersive-ar');
-        var sphere: Mesh = MeshBuilder.CreateSphere("sphere", { diameter: 5 }, scene);
-        sphere.position = new Vector3(0,0,0);
-        var sphereMaterial = new StandardMaterial("myMaterial", scene);
-        sphere.material = sphereMaterial;
-        // sphere.material 
-        // available = false;
-        if (available) {
-            let xr = await scene.createDefaultXRExperienceAsync({
-                // ask for an ar-session
-                uiOptions: {
-                sessionMode: "immersive-ar",
-                referenceSpaceType: "local-floor"
-                },
-                optionalFeatures: ["hit-test", "anchors"],
-            });
-
-            const fm = xr.baseExperience.featuresManager;
-            const xrPlanes = fm.enableFeature(WebXRPlaneDetector.Name, "latest");
-            const anchorSystem = fm.enableFeature(WebXRAnchorSystem, 'latest') as WebXRAnchorSystem;
-            const hitTest = fm.enableFeature(WebXRHitTest, 'latest') as WebXRHitTest;
-
-            // var sphereTN = new TransformNode("tn", scene);
-
-            anchorSystem.onAnchorAddedObservable.add((anchor) => {
-                //...
-                anchor.attachedNode = sphere;
-              });
-    
-            var lastHitTest: any;
-            // const anchorPromise = anchorSystem.addAnchorPointUsingHitTestResultAsync(lastHitTest);
-    
-            let anchorsAvailable = false;
-            
-            hitTest.onHitTestResultObservable.add((results) => {
-                if (results.length) {
-                    lastHitTest = results[0];
-                } else {
-                    lastHitTest = null;
-                }
-            });
-
-            anchorSystem.onAnchorAddedObservable.add((anchor) => {
-                anchor.attachedNode = sphere;
-            });
-    
-            scene.onPointerObservable.add(async (eventData) => {
-                if (lastHitTest) {
-                    if (lastHitTest.xrHitResult.createAnchor) {
-                        const anchor = await anchorSystem.addAnchorPointUsingHitTestResultAsync(lastHitTest);
-                    }
-                }
-            }, BABYLON.PointerEventTypes.POINTERDOWN);
-    
-        }
-
-        // const xrPlanes = fm.enableFeature(BABYLON.WebXRPlaneDetector.Name, "latest");
-
-
-        // console.log("after")
-
-        // var scene: Scene = new Scene(engine);
 
         this.camera = new ArcRotateCamera("Camera", Math.PI / 2, Math.PI / 2, 2, Vector3.Zero(), scene);
         this.camera.attachControl(canvas, true);
@@ -300,28 +237,11 @@ class App {
         this.camera.target = new Vector3(1079.2689865948171, 4.2231861664889427, -6175.4743729886959);
         this.camera.position = new Vector3(15,15,15);
         this.camera.target = new Vector3(0,0,0);
-        // this.camera.rotation.z = 180;
         this.camera.maxZ = 0;
         this.camera.minZ = 0.1;
-        // let axesA = new AxesViewer(scene, 10);
-        // let axesB = new AxesViewer(scene, 20);
-        // let axesC = new AxesViewer(scene, 30);
-        // axesC.position
-
         
         var alignment = require("./alignment.json");
         var alignment_i = 0;
-
-        // scene.onKeyboardObservable.add((kbInfo) => {
-        //     switch (kbInfo.type) {
-        //       case KeyboardEventTypes.KEYDOWN:
-        //         console.log("KEY DOWN: ", kbInfo.event.key);
-        //         break;
-        //       case KeyboardEventTypes.KEYUP:
-        //         console.log("KEY UP: ", kbInfo.event.code);
-        //         break;
-        //     }
-        //   });
 
         scene.onKeyboardObservable.add((kbInfo) => {
             switch (kbInfo.type) {
@@ -340,22 +260,9 @@ class App {
                     
                     alignment_i = Math.min(alignment_i, alignment.length - 1)
                     alignment_i = Math.max(alignment_i, 1)
-                    let off_x = this.camera.target.x - this.camera.position.x
-                    let off_y = this.camera.target.y - this.camera.position.y
-                    let off_z = this.camera.target.z - this.camera.position.z
-
-                    this.camera.target = new Vector3(alignment[alignment_i][0], alignment[alignment_i][2], alignment[alignment_i][1]);
-                    // this.camera.target.x = alignment[alignment_i][0];
-                    // this.camera.target.y = alignment[alignment_i][2];
-                    // this.camera.target.z = alignment[alignment_i][1];
                     
-                    this.camera.position = new Vector3(alignment[alignment_i-1][0], alignment[alignment_i-1][2], alignment[alignment_i-1][1]);
-                    // this.camera.position.y = alignment[alignment_i-1][2];
-                    // this.camera.position.z = alignment[alignment_i-1][1];
-
-                    // this.camera.position.x = this.camera.target.x + off_x
-                    // this.camera.position.y = this.camera.target.y + off_y
-                    // this.camera.position.z = this.camera.target.z + off_z
+                    this.camera.target = new Vector3(alignment[alignment_i][0], alignment[alignment_i][2], alignment[alignment_i][1]).subtract(segmentOffset);
+                    this.camera.position = new Vector3(alignment[alignment_i-1][0], alignment[alignment_i-1][2], alignment[alignment_i-1][1]).subtract(segmentOffset);
                 break;
             }
         });
@@ -364,6 +271,7 @@ class App {
         let guiCanvas = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
         let guiButton = GUI.Button.CreateSimpleButton("guiButton", "None");
         var guiLine = new GUI.Line();
+
         scene.onPointerDown = function castRay(){
             var ray = scene.createPickingRay(scene.pointerX, scene.pointerY, Matrix.Identity(), this.camera);	
 
@@ -387,9 +295,6 @@ class App {
         guiCanvas.addControl(this.explanationButton);
 
         var light1: HemisphericLight = new HemisphericLight("light1", new Vector3(1, 1, 0), scene);
-
-        // var sphere: Mesh = MeshBuilder.CreateSphere("sphere", { diameter: 1 }, scene);
-        // sphere.position = new Vector3(0,0,0-5);
 
         return Promise.resolve(scene);
 
