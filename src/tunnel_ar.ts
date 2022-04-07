@@ -243,6 +243,8 @@ class App {
         var alignment = require("./alignment.json");
         var alignment_i = 0;
 
+        var cameraVertOffset = new Vector3(0,0,0)
+
         scene.onKeyboardObservable.add((kbInfo) => {
             switch (kbInfo.type) {
                 case BABYLON.KeyboardEventTypes.KEYDOWN:
@@ -260,9 +262,9 @@ class App {
                     
                     alignment_i = Math.min(alignment_i, alignment.length - 1)
                     alignment_i = Math.max(alignment_i, 1)
+
+                    updateCamera(this.camera, alignment, alignment_i, segmentOffset, cameraVertOffset);
                     
-                    this.camera.target = new Vector3(alignment[alignment_i][0], alignment[alignment_i][2], alignment[alignment_i][1]).subtract(segmentOffset);
-                    this.camera.position = new Vector3(alignment[alignment_i-1][0], alignment[alignment_i-1][2], alignment[alignment_i-1][1]).subtract(segmentOffset);
                 break;
             }
         });
@@ -270,6 +272,21 @@ class App {
         //Creates a gui label to display the cannon
         let guiCanvas = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
         let guiButton = GUI.Button.CreateSimpleButton("guiButton", "None");
+
+        // let guiSlider = new GUI.Slider("guiSlider");
+        
+        // guiSlider.minimum = -50;
+        // guiSlider.maximum = 50;
+        // guiSlider.value = 0;
+        // guiSlider.height = "20px";
+        // guiSlider.width = "200px";
+        // guiSlider.onValueChangedObservable.add(function(value) {
+        //     cameraVertOffset.y = value
+        //     updateCamera(this.camera, alignment, alignment_i, segmentOffset, cameraVertOffset);
+        // });
+        // guiCanvas.addControl(guiSlider);
+
+
         var guiLine = new GUI.Line();
 
         scene.onPointerDown = function castRay(){
@@ -326,6 +343,12 @@ function createGUIButton(mesh, guiCanvas, guiButton, guiLine){
     guiCanvas.addControl(guiLine);
     guiLine.linkWithMesh(mesh); 
     guiLine.connectedControl = guiButton;  
+}
+
+function updateCamera(camera, alignment, alignment_i, segmentOffset, cameraVertOffset) {
+    let i = 10
+    camera.target = new Vector3(alignment[alignment_i][0], alignment[alignment_i][2], alignment[alignment_i][1]).subtract(segmentOffset);
+    camera.position = new Vector3(alignment[alignment_i-i][0], alignment[alignment_i-i][2], alignment[alignment_i-i][1]).subtract(segmentOffset).subtract(cameraVertOffset);
 }
 
 new App();
