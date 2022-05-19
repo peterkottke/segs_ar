@@ -32,8 +32,9 @@ class App {
         var that = this;
 
         engine.runRenderLoop(() => {
+            // scene.render();
             scene.then(function(scene) {
-                that.explanationButton.textBlock.text = String(that.camera.position)
+                // that.explanationButton.textBlock.text = String(that.camera.position)
                 scene.render()
             });
         });
@@ -335,7 +336,8 @@ class App {
             }
         }   
         
-        this.explanationButton = GUI.Button.CreateSimpleButton("guiButton", "W: Forward\nS: Backward\n" + available + this.camera.position);
+        // this.explanationButton = GUI.Button.CreateSimpleButton("guiButton", "W: Forward\nS: Backward\n" + available + this.camera.position);
+        this.explanationButton = GUI.Button.CreateSimpleButton("guiButton", "W: Forward\nS: Backward\nLeft Mouse: Rotate\nRight Mouse: Pan");
         this.explanationButton.width = "150px"
         this.explanationButton.height = "80px";
         this.explanationButton.color = "white";
