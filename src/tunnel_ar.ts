@@ -337,9 +337,9 @@ class App {
         }   
         
         // this.explanationButton = GUI.Button.CreateSimpleButton("guiButton", "W: Forward\nS: Backward\n" + available + this.camera.position);
-        this.explanationButton = GUI.Button.CreateSimpleButton("guiButton", "W: Forward\nS: Backward\nLeft Mouse: Rotate\nRight Mouse: Pan");
-        this.explanationButton.width = "150px"
-        this.explanationButton.height = "80px";
+        this.explanationButton = GUI.Button.CreateSimpleButton("guiButton", "W:\tForward\nS:\tBackward\nLeft Mouse:\tRotate\nRight Mouse:\tPan");
+        this.explanationButton.width = "250px";
+        this.explanationButton.height = "120px";
         this.explanationButton.color = "white";
         this.explanationButton.cornerRadius = 5;
         this.explanationButton.background = "green";
