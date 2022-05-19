@@ -247,7 +247,13 @@ class App {
                     meshInstance.rotate(new Vector3(0,0,1), ringRotations[idx] * 3.1415/180, BABYLON.Space.WORLD);
 
                     let segmentAxis = [0,0,1];
-                    let asbuiltAxis = [ringXs[idx+1] - ringXs[idx], ringZs[idx+1] - ringZs[idx], ringYs[idx+1] - ringYs[idx]];
+                    if (idx < (ringXs.length - 1)) {
+                        // Get position from next ring
+                        var asbuiltAxis = [ringXs[idx+1] - ringXs[idx], ringZs[idx+1] - ringZs[idx], ringYs[idx+1] - ringYs[idx]];
+                    } else {
+                        // Get position from previous ring
+                        var asbuiltAxis = [ringXs[idx] - ringXs[idx-1], ringZs[idx] - ringZs[idx-1], ringYs[idx] - ringYs[idx-1]];
+                    }
 
                     let rotationAxis = cross(segmentAxis, asbuiltAxis);
                     // let a = norm(segmentAxis);
@@ -283,22 +289,28 @@ class App {
         scene.onKeyboardObservable.add((kbInfo) => {
             switch (kbInfo.type) {
                 case BABYLON.KeyboardEventTypes.KEYDOWN:
+                    let update = false;
                     switch (kbInfo.event.key) {
                         case "w":
                         case "W":
                             alignment_i += 25;
+                            update = true;
 
                         break
                         case "s":
                         case "S":
                             alignment_i -= 25;
+                            update = true;
                         break
                     }
                     
-                    alignment_i = Math.min(alignment_i, ringXs.length - 1)
-                    alignment_i = Math.max(alignment_i, 1)
+                    if (update) {
+                        alignment_i = Math.min(alignment_i, ringXs.length - 1)
+                        alignment_i = Math.max(alignment_i, 1)
+    
+                        updateCamera(this.camera, [ringXs, ringZs, ringYs], alignment_i, segmentOffset, cameraVertOffset);
 
-                    updateCamera(this.camera, [ringXs, ringZs, ringYs], alignment_i, segmentOffset, cameraVertOffset);
+                    }
                     
                 break;
             }
