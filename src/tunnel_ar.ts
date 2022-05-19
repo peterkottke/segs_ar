@@ -1,6 +1,7 @@
-import { Engine, KeyboardEventTypes, Axis, Scene, WebXRSessionManager, WebXRPlaneDetector, WebXRHitTest, WebXRAnchorSystem, ArcRotateCamera, StandardMaterial, AxesViewer, Color3, FreeCamera, Matrix, SceneLoader, HemisphericLight, Vector3, MeshBuilder, Mesh, ThinRenderTargetTexture, HandConstraintZone, Quaternion, Texture, TransformNode } from "babylonjs";
+import { Engine, KeyboardEventTypes, Axis, Scene, CreatePlane, CreateLines, DynamicTexture, WebXRSessionManager, WebXRPlaneDetector, WebXRHitTest, WebXRAnchorSystem, ArcRotateCamera, StandardMaterial, AxesViewer, Color3, FreeCamera, Matrix, SceneLoader, HemisphericLight, Vector3, MeshBuilder, Mesh, ThinRenderTargetTexture, HandConstraintZone, Quaternion, Texture, TransformNode } from "babylonjs";
 import 'babylonjs-loaders';
 import * as GUI from "babylonjs-gui";
+import { cross, dot, acos, norm, string } from "mathjs";
 // import {GUI} from 'babylonjs-gui';
 
 var canvas: any = document.getElementById("renderCanvas");
@@ -63,7 +64,7 @@ class App {
 
 
         var sphereOrigin: Mesh = MeshBuilder.CreateSphere("sphere", { diameter: 1 }, scene);
-        var segmentOffset = new Vector3(2.598,-5.32,-9.15)
+        // var segmentOffset = new Vector3(2.598,-5.32,-9.15)
         // sphereOrigin.position;
         sphereOrigin.position = new Vector3(0,0,0);
         var sphereMaterial = new StandardMaterial("myMaterial", scene);
@@ -143,36 +144,63 @@ class App {
     
         }
 
-        // https://www.dropbox.com/s/je705shue9fxuqt/unit_cube.obj?dl=0
-        var loadSegs = false;
-        var loadSegs = true;
+        let seg_rotations = require("./ci_data.json");
+        // console.log(seg_rotations)
 
-        if (loadSegs) {
+        // https://stackoverflow.com/questions/1263072/changing-a-matrix-from-right-handed-to-left-handed-coordinate-system
 
-            let seg_rotations = require("./segs_block_rotations.json");
-            // console.log(seg_rotations)
+        var ringXs:number[] = [];
+        var ringYs:number[] = [];
+        var ringZs:number[] = [];
+        var ringRotations:number[] = [];
 
-            // https://stackoverflow.com/questions/1263072/changing-a-matrix-from-right-handed-to-left-handed-coordinate-system
+        let offsetX = 1758200;
+        let offsetY = 5908082;
+        let offsetZ = 0;
+        let segmentOffset = new Vector3(offsetX, offsetZ, offsetY);
 
-            for (var seg_name in seg_rotations) {
-                console.log(seg_name)
 
-                var seg_mesh: any;
+        
+        for (let key in seg_rotations['P-Number']) {
+            if (key == 'RingYCoord') { // only for CI, error in DB specification
+                for (let result in seg_rotations['P-Number'][key]) {
+                    ringXs.push(seg_rotations['P-Number'][key][result]["value"])
+                }
+            }
+            if (key == 'RingXCoord') { // only for CI, error in DB specification
+                for (let result in seg_rotations['P-Number'][key]) {
+                    ringYs.push(seg_rotations['P-Number'][key][result]["value"])
+                }
+            }
+            if (key == 'RingZCoord') {
+                for (let result in seg_rotations['P-Number'][key]) {
+                    ringZs.push(seg_rotations['P-Number'][key][result]["value"])
+                }
+            }
+            if (key == 'KeyStoneAngle') {
+                for (let result in seg_rotations['P-Number'][key]) {
+                    ringRotations.push(seg_rotations['P-Number'][key][result]["value"])
+                }
+            }
+        }
+
+        var seg_mesh: any;
+            
+        let importPromise = SceneLoader.ImportMeshAsync(
+            null,
+            "./meshes/",
+            "CI_ring.obj",
+            scene
+        );
+        importPromise.then((meshes) => {
                 
-                let importPromise = SceneLoader.ImportMeshAsync(
-                    null,
-                    "./meshes/",
-                    seg_name + ".obj",
-                    // "https://dl.dropbox.com/s/je705shue9fxuqt/",
-                    // "unit_cube.obj",
-                    scene
-                );
-                importPromise.then((meshes) => {
-                    
+            for (let idx = 0; idx < ringXs.length; idx++) {
+                for (let meshIdx = 0; meshIdx < meshes['meshes'].length; meshIdx++) {
+
                     // console.log(meshes);
-                    seg_mesh = meshes['meshes'][0];
-                    seg_mesh.name = seg_name;
-                    console.log(seg_mesh);
+                    seg_mesh = meshes['meshes'][meshIdx];
+                    seg_mesh.name = "Seg_" + meshIdx;
+                    // console.log(seg_mesh);
 
                     let scale = 1;
                     seg_mesh.scaling.x = scale;
@@ -193,39 +221,45 @@ class App {
 
                     seg_mesh.material = myMaterial;
                     seg_mesh.isVisible = false;
-                    myMaterial.alpha = segmentAlpha;
+                    // myMaterial.alpha = segmentAlpha;
                     seg_mesh.parent = sphereOrigin;
                         
-                    console.log(seg_name + ": " + seg_rotations[seg_name].length);
+                    // console.log(seg_name + ": " + seg_rotations[seg_name].length);
 
-                    let segLimit = seg_rotations[seg_name].length
-                    if (available) {
-                        segLimit = 100;
-                    }
+                    console.log("creating instances")
 
-                    for (let j=1; j<segLimit; j++) {
-                        console.log("creating instances")
+                    let meshInstance = seg_mesh.createInstance("i" + idx);
+                    meshInstance.name = string(idx);
 
-                        let meshInstance = seg_mesh.createInstance("i" + j);
 
-                        meshInstance.position = new Vector3(seg_rotations[seg_name][j]['dx'], seg_rotations[seg_name][j]['dz'], seg_rotations[seg_name][j]['dy']).subtract(segmentOffset)
+                    
+                    // let newQuat = new Quaternion(
+                    //     -seg_rotations[seg_name][j]['qx'], // x 
+                    //     -seg_rotations[seg_name][j]['qz'], // z
+                    //     -seg_rotations[seg_name][j]['qy'], // y
+                    //     seg_rotations[seg_name][j]['qw'], // w
+                    //     );
 
-                        
-                        let newQuat = new Quaternion(
-                            -seg_rotations[seg_name][j]['qx'], // x 
-                            -seg_rotations[seg_name][j]['qz'], // z
-                            -seg_rotations[seg_name][j]['qy'], // y
-                            seg_rotations[seg_name][j]['qw'], // w
-                            );
+                    // meshInstance.rotationQuaternion = newQuat;
+                    meshInstance.parent = sphereOrigin;
 
-                        meshInstance.rotationQuaternion = newQuat;
-                        meshInstance.parent = sphereOrigin;
-                    }
-                });
+                    meshInstance.rotate(new Vector3(0,0,1), ringRotations[idx] * 3.1415/180, BABYLON.Space.WORLD);
 
+                    let segmentAxis = [0,0,1];
+                    let asbuiltAxis = [ringXs[idx+1] - ringXs[idx], ringZs[idx+1] - ringZs[idx], ringYs[idx+1] - ringYs[idx]];
+
+                    let rotationAxis = cross(segmentAxis, asbuiltAxis);
+                    // let a = norm(segmentAxis);
+                    let rotationMagnitude = acos(dot(segmentAxis, asbuiltAxis)/((norm(segmentAxis) as number)*(norm(asbuiltAxis) as number)));
+
+                    meshInstance.rotate(new Vector3(rotationAxis[0], rotationAxis[1], rotationAxis[2]), rotationMagnitude, BABYLON.Space.WORLD);
+
+                    meshInstance.position = new Vector3(ringXs[idx], ringZs[idx], ringYs[idx]).subtract(segmentOffset);
+                }
+                    
             }
-        }
 
+        });
 
         this.camera = new ArcRotateCamera("Camera", Math.PI / 2, Math.PI / 2, 2, Vector3.Zero(), scene);
         this.camera.attachControl(canvas, true);
@@ -240,7 +274,7 @@ class App {
         this.camera.maxZ = 0;
         this.camera.minZ = 0.1;
         
-        var alignment = require("./alignment.json");
+        // var alignment = require("./alignment.json");
         var alignment_i = 0;
 
         var cameraVertOffset = new Vector3(0,0,0)
@@ -260,14 +294,16 @@ class App {
                         break
                     }
                     
-                    alignment_i = Math.min(alignment_i, alignment.length - 1)
+                    alignment_i = Math.min(alignment_i, ringXs.length - 1)
                     alignment_i = Math.max(alignment_i, 1)
 
-                    updateCamera(this.camera, alignment, alignment_i, segmentOffset, cameraVertOffset);
+                    updateCamera(this.camera, [ringXs, ringZs, ringYs], alignment_i, segmentOffset, cameraVertOffset);
                     
                 break;
             }
         });
+
+        const axes = new AxesViewer(scene, 25)
 
         //Creates a gui label to display the cannon
         let guiCanvas = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
@@ -319,7 +355,7 @@ class App {
 }
 
 function createGUIButton(mesh, guiCanvas, guiButton, guiLine){
-    guiButton.textBlock.text= "Segment: " + mesh.sourceMesh.name + "\nInstance: " //+ mesh.name
+    guiButton.textBlock.text= "Ring: " + mesh.name + "\nSegment: " + mesh.sourceMesh.name
     guiButton.textBlock.horizontalAlignment = "left"
     guiButton.width = "150px"
     guiButton.height = "80px";
@@ -347,8 +383,8 @@ function createGUIButton(mesh, guiCanvas, guiButton, guiLine){
 
 function updateCamera(camera, alignment, alignment_i, segmentOffset, cameraVertOffset) {
     let i = 10
-    camera.target = new Vector3(alignment[alignment_i][0], alignment[alignment_i][2], alignment[alignment_i][1]).subtract(segmentOffset);
-    camera.position = new Vector3(alignment[alignment_i-i][0], alignment[alignment_i-i][2], alignment[alignment_i-i][1]).subtract(segmentOffset).subtract(cameraVertOffset);
+    camera.target = new Vector3(alignment[0][alignment_i], alignment[1][alignment_i], alignment[2][alignment_i]).subtract(segmentOffset);
+    camera.position = new Vector3(alignment[0][alignment_i-i], alignment[1][alignment_i-i], alignment[2][alignment_i-i]).subtract(segmentOffset).subtract(cameraVertOffset);
 }
 
 new App();
