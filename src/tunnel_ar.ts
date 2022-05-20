@@ -185,15 +185,51 @@ class App {
             }
         }
 
+        let groundSurfacePromise = SceneLoader.ImportMeshAsync(
+            null,
+            "./meshes/",
+            "dem_296787.0.glb",
+            scene
+        );
+        groundSurfacePromise.then((meshes) => {
+                
+                for (let meshIdx = 0; meshIdx < meshes['meshes'].length; meshIdx++) {
+
+                    // console.log(meshes);
+                    let mesh = meshes['meshes'][meshIdx];
+
+                    let scale = 1;
+                    mesh.scaling.x = scale;
+                    mesh.scaling.y = -scale;
+                    mesh.scaling.z = scale; // rhino outputs OBJ weird, even with mapping Z to Y
+                    
+                    mesh.rotate(new Vector3(1,0,0), Math.PI/2, BABYLON.Space.WORLD);
+                    
+                    var myMaterial = new StandardMaterial("myMaterial", scene);
+                    // myMaterial.bumpTexture = new Texture("./meshes/concrete_40-1K/1K-concrete_40-normal.jpg")
+                    // myMaterial.diffuseTexture = new Texture("./meshes/concrete_40-1K/1K-concrete_40-diffuse.jpg")
+                    myMaterial.alpha = 0.5;
+
+                    myMaterial.diffuseColor = new Color3(0.5,0.3,0.3);
+                    myMaterial.backFaceCulling = false;
+
+                    mesh.material = myMaterial;
+                    mesh.parent = sphereOrigin;
+                        
+                    
+                }
+            });
+
+
         var seg_mesh: any;
             
-        let importPromise = SceneLoader.ImportMeshAsync(
+        let segmentsPromise = SceneLoader.ImportMeshAsync(
             null,
             "./meshes/",
             "CI_ring.obj",
             scene
         );
-        importPromise.then((meshes) => {
+        segmentsPromise.then((meshes) => {
                 
             for (let idx = 0; idx < ringXs.length; idx++) {
                 for (let meshIdx = 0; meshIdx < meshes['meshes'].length; meshIdx++) {
@@ -244,7 +280,7 @@ class App {
                     // meshInstance.rotationQuaternion = newQuat;
                     meshInstance.parent = sphereOrigin;
 
-                    meshInstance.rotate(new Vector3(0,0,1), ringRotations[idx] * 3.1415/180, BABYLON.Space.WORLD);
+                    meshInstance.rotate(new Vector3(0,0,1), ringRotations[idx] * Math.PI/180, BABYLON.Space.WORLD);
 
                     let segmentAxis = [0,0,1];
                     if (idx < (ringXs.length - 1)) {
@@ -267,6 +303,47 @@ class App {
             }
 
         });
+        
+        let shaftPromise = SceneLoader.ImportMeshAsync(
+            null,
+            "./meshes/",
+            "shaft_only.obj",
+            scene
+        );
+        shaftPromise.then((meshes) => {
+                
+                for (let meshIdx = 0; meshIdx < meshes['meshes'].length; meshIdx++) {
+
+                    let mesh = meshes['meshes'][meshIdx];
+
+                    let scale = 1/1000;
+                    mesh.scaling.x = scale;
+                    mesh.scaling.y = scale;
+                    mesh.scaling.z = -scale; // rhino outputs OBJ weird, even with mapping Z to Y
+                    
+                    mesh.rotate(new Vector3(1,0,0), Math.PI/2, BABYLON.Space.WORLD);
+                    
+                    let idx = 0;
+                    let shaftAxis = [-1,0,0];
+                    var asbuiltAxis = [ringXs[idx+1] - ringXs[idx], ringZs[idx+1] - ringZs[idx], ringYs[idx+1] - ringYs[idx]];
+
+                    let rotationMagnitude = acos(dot(shaftAxis, asbuiltAxis)/((norm(shaftAxis) as number)*(norm(asbuiltAxis) as number)));
+
+                    mesh.rotate(new Vector3(0,1,0), rotationMagnitude, BABYLON.Space.WORLD);
+                    
+                    var myMaterial = new StandardMaterial("myMaterial", scene);
+                    myMaterial.bumpTexture = new Texture("./meshes/concrete_40-1K/1K-concrete_40-normal.jpg")
+                    myMaterial.diffuseTexture = new Texture("./meshes/concrete_40-1K/1K-concrete_40-diffuse.jpg")
+
+                    myMaterial.diffuseColor = new Color3(0.3,0.5,0.3);
+
+                    mesh.material = myMaterial;
+                    mesh.parent = sphereOrigin;
+
+                        
+                    mesh.parent = sphereOrigin;
+                }
+            });
 
         this.camera = new ArcRotateCamera("Camera", Math.PI / 2, Math.PI / 2, 2, Vector3.Zero(), scene);
         this.camera.attachControl(canvas, true);
@@ -343,8 +420,14 @@ class App {
 
             var hit = scene.pickWithRay(ray);
 
+
             if (hit.pickedMesh){
                 createGUIButton(hit.pickedMesh, guiCanvas, guiButton, guiLine);
+                
+                //     if (hit.pickedMesh.sourceMesh.name.indexOf("Seg_")) {
+                //     }
+                // }
+            
             }
         }   
         
@@ -369,30 +452,33 @@ class App {
 }
 
 function createGUIButton(mesh, guiCanvas, guiButton, guiLine){
-    guiButton.textBlock.text= "Ring: " + mesh.name + "\nSegment: " + mesh.sourceMesh.name
-    guiButton.textBlock.horizontalAlignment = "left"
-    guiButton.width = "150px"
-    guiButton.height = "80px";
-    guiButton.color = "white";
-    // guiButton.
-    guiButton.cornerRadius = 5;
-    guiButton.background = "green";
-    guiButton.onPointerUpObservable.add(function() {
-        guiCanvas.dispose();
-    });
-    guiButton.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
-    guiButton.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-    guiButton.left = "50px"
-    guiButton.top = "50px"
-    guiCanvas.addControl(guiButton);
+    if ("sourceMesh" in mesh) {
+        guiButton.textBlock.text= "Ring: " + mesh.name + "\nSegment: " + mesh.sourceMesh.name
+        guiButton.textBlock.horizontalAlignment = "left"
+        guiButton.width = "150px"
+        guiButton.height = "80px";
+        guiButton.color = "white";
+        // guiButton.
+        guiButton.cornerRadius = 5;
+        guiButton.background = "green";
+        guiButton.onPointerUpObservable.add(function() {
+            guiCanvas.dispose();
+        });
+        guiButton.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
+        guiButton.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        guiButton.left = "50px"
+        guiButton.top = "50px"
+        guiCanvas.addControl(guiButton);
+    
+        guiLine.lineWidth = 4;
+        guiLine.color = "Orange";
+        guiLine.y2 = 20;
+        // line.linkOffsetY = -20;
+        guiCanvas.addControl(guiLine);
+        guiLine.linkWithMesh(mesh); 
+        guiLine.connectedControl = guiButton;  
 
-    guiLine.lineWidth = 4;
-    guiLine.color = "Orange";
-    guiLine.y2 = 20;
-    // line.linkOffsetY = -20;
-    guiCanvas.addControl(guiLine);
-    guiLine.linkWithMesh(mesh); 
-    guiLine.connectedControl = guiButton;  
+    }
 }
 
 function updateCamera(camera, alignment, alignment_i, segmentOffset, cameraVertOffset) {
